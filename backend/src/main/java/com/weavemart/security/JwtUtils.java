@@ -12,7 +12,7 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    @Value("${jwt.secret:${JWT_SECRET:9a2f8c4e1b7d5a3f6e8c0b2d4f6a8c1e3b5d7f9a2c4e6b8d0a2f4c6e8b0a2f4c}}")
+    @Value("${jwt.secret:9a2f8c4e1b7d5a3f6e8c0b2d4f6a8c1e3b5d7f9a2c4e6b8d0a2f4c6e8b0a2f4c}")
     private String jwtSecret;
 
     @Value("${jwt.expirationMs:86400000}")
