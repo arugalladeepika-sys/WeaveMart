@@ -27,6 +27,7 @@ export default function LoginRegister({ onLoginSuccess, onOpenGuidance }) {
   const [craftRegion, setCraftRegion] = useState('Pochampally (Telangana)');
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleQuickLogin = (demoEmail, demoPassword) => {
     setEmail(demoEmail);
@@ -68,6 +69,7 @@ export default function LoginRegister({ onLoginSuccess, onOpenGuidance }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
 
     try {
       const cleanEmail = email.trim().toLowerCase();
@@ -82,10 +84,12 @@ export default function LoginRegister({ onLoginSuccess, onOpenGuidance }) {
         if (role === 'WEAVER') {
           if (!artisanId.trim()) {
             setError("Please enter your Weaver ID / Pehchan Card Number for identity validation!");
+            setSubmitting(false);
             return;
           }
           if (!idProofDocumentUrl && !proofPreview) {
             setError("Please upload an image or scan of your Weaver ID Proof card to validate your artisan profile!");
+            setSubmitting(false);
             return;
           }
         }
@@ -110,7 +114,13 @@ export default function LoginRegister({ onLoginSuccess, onOpenGuidance }) {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Authentication failed. Please check details.");
+      if (!err.response) {
+        setError("Connecting to backend server... If it was asleep, please wait 20-30 seconds and try again!");
+      } else {
+        setError(err.response?.data?.message || "Authentication failed. Please check your credentials.");
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -475,9 +485,21 @@ export default function LoginRegister({ onLoginSuccess, onOpenGuidance }) {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white font-bold py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-sm pt-3"
+              disabled={submitting}
+              className={`w-full bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-700 hover:to-amber-900 text-white font-bold py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-sm pt-3 ${
+                submitting ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              {isLogin ? 'Login to WeaveMart' : 'Register Account'} <ArrowRight className="w-4 h-4" />
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Connecting to WeaveMart...</span>
+                </>
+              ) : (
+                <>
+                  {isLogin ? 'Login to WeaveMart' : 'Register Account'} <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
 
           </form>
