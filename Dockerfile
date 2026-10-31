@@ -1,39 +1,36 @@
-# ==========================================
-# Multi-Stage Dockerfile for WeaveMart
-# Builds React Frontend + Spring Boot Backend
-# into a single self-contained production container
-# ==========================================
+# --------------------------------------------------------------
+# Stage 1 – Build the Spring Boot JAR (including the embedded UI)
+# --------------------------------------------------------------
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
 
-# Stage 1: Build React Frontend
-FROM node:20-alpine AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm install
-COPY frontend/ ./
-RUN npm run build
-
-# Stage 2: Build Spring Boot Backend with embedded Frontend static files
-FROM maven:3.9-eclipse-temurin-17 AS backend-build
-WORKDIR /app
-COPY backend/pom.xml backend/
-COPY backend/src backend/src
-# Copy built frontend assets to Spring Boot static resources
-COPY --from=frontend-build /app/frontend/dist backend/src/main/resources/static
-WORKDIR /app/backend
-RUN mvn clean package -DskipTests
-
-# Stage 3: Minimal Production Runtime
-FROM eclipse-temurin:17-jre-jammy
+# Set workdir inside the container
 WORKDIR /app
 
-# Create persistent directories for SQLite/H2 data and uploaded files
-RUN mkdir -p /app/data /app/uploads
+# Copy only the backend pom.xml first (caches dependencies)
+COPY backend/pom.xml .
 
-COPY --from=backend-build /app/backend/target/weavemart-backend-1.0.0.jar app.jar
+# Download dependencies (no source code yet → layer cache)
+RUN mvn dependency:go-offline -B
 
-ENV PORT=8080
-ENV SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/weavemartdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+# Now copy the rest of the backend source
+COPY backend/src ./src
 
+# Build the jar (skip tests for speed)
+RUN mvn -B -DskipTests clean package
+
+# --------------------------------------------------------------
+# Stage 2 – Runtime image (tiny Alpine JDK)
+# --------------------------------------------------------------
+FROM eclipse-temurin:17-jdk-alpine
+
+# Vercel expects the process to listen on $PORT (already handled)
+VOLUME /tmp
+
+# Copy the built jar from the builder stage
+COPY --from=builder /app/target/weavemart-backend-1.0.0.jar /app.jar
+
+# Expose the port (optional – Vercel sets $PORT at runtime)
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Start the application
+ENTRYPOINT ["java","-jar","/app.jar"]
