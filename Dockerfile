@@ -1,36 +1,54 @@
-# --------------------------------------------------------------
-# Stage 1 – Build the Spring Boot JAR (including the embedded UI)
-# --------------------------------------------------------------
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
+# ==========================================
+# Multi-Stage Dockerfile for WeaveMart
+# Builds React Frontend + Spring Boot Backend
+# into a single self-contained production container
+# ==========================================
 
-# Set workdir inside the container
+# Stage 1: Build React Frontend
+FROM node:20-alpine AS frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Build Spring Boot Backend with embedded Frontend static files
+FROM maven:3.9.6-eclipse-temurin-17 AS backend-build
 WORKDIR /app
 
-# Copy only the backend pom.xml first (caches dependencies)
-COPY backend/pom.xml .
+# Create persistent directories for SQLite/H2 data and uploaded files
+RUN mkdir -p /app/data /app/uploads
 
-# Download dependencies (no source code yet → layer cache)
-RUN mvn dependency:go-offline -B
+# Cache Maven dependencies by copying pom.xml first
+COPY backend/pom.xml ./backend/
+RUN mvn -f backend/pom.xml dependency:go-offline -B
 
-# Now copy the rest of the backend source
-COPY backend/src ./src
+# Copy backend source code
+COPY backend/src ./backend/src
 
-# Build the jar (skip tests for speed)
-RUN mvn -B -DskipTests clean package
+# Copy built frontend assets to Spring Boot static resources
+COPY --from=frontend-build /app/frontend/dist ./backend/src/main/resources/static
 
-# --------------------------------------------------------------
-# Stage 2 – Runtime image (tiny Alpine JDK)
-# --------------------------------------------------------------
-FROM eclipse-temurin:17-jdk-alpine
+# Build the final executable JAR file
+WORKDIR /app/backend
+RUN mvn clean package -B -DskipTests
 
-# Vercel expects the process to listen on $PORT (already handled)
-VOLUME /tmp
+# Stage 3: Minimal Production Runtime
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
 
-# Copy the built jar from the builder stage
-COPY --from=builder /app/target/weavemart-backend-1.0.0.jar /app.jar
+# Re-create persistent directories in the final runtime layer
+RUN mkdir -p /app/data /app/uploads
+VOLUME ["/app/data", "/app/uploads"]
 
-# Expose the port (optional – Vercel sets $PORT at runtime)
+# Copy the built jar from the backend-build stage
+COPY --from=backend-build /app/backend/target/weavemart-backend-1.0.0.jar app.jar
+
+# Environment configurations
+ENV PORT=8080
+ENV SPRING_DATASOURCE_URL=jdbc:h2:file:/app/data/weavemartdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+
 EXPOSE 8080
 
-# Start the application
-ENTRYPOINT ["java","-jar","/app.jar"]
+# Clean, single entry point configuration
+ENTRYPOINT ["java", "-jar", "app.jar"]
