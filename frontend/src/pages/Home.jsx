@@ -1,162 +1,172 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, ShieldCheck, Heart, Award, ChevronRight, Video } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Search, Filter, Sparkles, MapPin, Layers } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
 import axios from 'axios';
 
-export default function Home({ onOpenGuidance }) {
-  const { t } = useTranslation();
-  const [featuredProducts, setFeaturedProducts] = useState([]);
+export default function Products() {
+  const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState('');
+  const [selectedMaterial, setSelectedMaterial] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchProducts = () => {
+    setLoading(true);
+    let url = '/api/products?';
+    if (search) url += `search=${encodeURIComponent(search)}&`;
+    if (selectedMaterial) url += `material=${encodeURIComponent(selectedMaterial)}&`;
+    if (selectedRegion) url += `region=${encodeURIComponent(selectedRegion)}&`;
+
+    axios.get(url)
+      .then(res => {
+        setProducts(res.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    axios.get('/api/products')
-      .then(res => setFeaturedProducts(res.data.slice(0, 4)))
-      .catch(err => console.error(err));
-  }, []);
+    fetchProducts();
+  }, [search, selectedMaterial, selectedRegion]);
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-8 max-w-7xl mx-auto">
       
-      {/* Hero Banner Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-amber-900 via-amber-950 to-slate-950 text-white py-20 px-4 sm:px-8 rounded-3xl shadow-2xl border border-amber-800/40">
-        <div className="absolute inset-0 bg-[radial-gradient(#d97706_1px,transparent_1px)] [background-size:24px_24px] opacity-20"></div>
+      {/* Header */}
+      <div className="bg-amber-900 text-amber-50 p-8 rounded-3xl shadow-lg space-y-2 border border-amber-800">
+        <h1 className="font-serif font-bold text-3xl">Handloom Fabric Catalog</h1>
+        <p className="text-xs sm:text-sm text-amber-200">
+          Directly explore sarees, dupattas, and unstitched fabric rolls uploaded by verified Indian weaver families.
+        </p>
+      </div>
 
-        <div className="relative max-w-5xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 bg-amber-800/60 border border-amber-600/40 px-4 py-1.5 rounded-full text-xs font-semibold text-amber-300 shadow">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Direct Artisan Marketplace • 0% Commission</span>
-          </div>
-
-          <h1 className="font-serif font-extrabold text-3xl sm:text-5xl lg:text-6xl text-amber-100 leading-tight tracking-tight">
-            {t('hero.title')}
-          </h1>
-
-          <p className="text-sm sm:text-base text-amber-200/90 max-w-3xl mx-auto leading-relaxed">
-            {t('hero.subtitle')}
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link
-              to="/products"
-              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-8 py-3.5 rounded-2xl shadow-xl hover:shadow-2xl transition flex items-center justify-center gap-2 text-sm"
-            >
-              {t('hero.exploreBtn')} <ArrowRight className="w-4 h-4" />
-            </Link>
-
-            <Link
-              to="/login"
-              className="w-full sm:w-auto bg-amber-900/80 hover:bg-amber-800 text-amber-100 font-bold px-8 py-3.5 rounded-2xl border border-amber-600/60 transition flex items-center justify-center gap-2 text-sm"
-            >
-              {t('hero.weaverBtn')}
-            </Link>
-
-            <button
-              onClick={onOpenGuidance}
-              className="w-full sm:w-auto bg-slate-900/90 hover:bg-slate-800 text-amber-300 font-bold px-6 py-3.5 rounded-2xl border border-amber-500/40 transition flex items-center justify-center gap-2 text-sm"
-            >
-              <Video className="w-4 h-4 text-amber-400" /> Video Guide
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Direct Weaver Impact Badges */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-        <div className="bg-white p-6 rounded-2xl border border-amber-200/80 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-amber-100 text-amber-800 rounded-xl shrink-0">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="font-serif font-bold text-slate-900 text-base">Direct UPI Payout</h3>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              100% of your payment is credited directly into the rural weaver's bank account via instant UPI.
-            </p>
-          </div>
+      {/* Filter & Search Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+        
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+          <input
+            type="text"
+            placeholder="Search by cloth, pattern, region..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-700"
+          />
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-amber-200/80 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-amber-100 text-amber-800 rounded-xl shrink-0">
-            <Award className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="font-serif font-bold text-slate-900 text-base">Verified Artisan Cards</h3>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Every seller is a government-verified weaver. No middlemen, no commercial factories.
-            </p>
-          </div>
+        {/* Fabric Material Dropdown */}
+        <div className="relative">
+          <Layers className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+          <select
+            value={selectedMaterial}
+            onChange={(e) => setSelectedMaterial(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-700 bg-white cursor-pointer"
+          >
+            <option value="">All Fabric Materials</option>
+            <option value="Pure Mulberry Silk">Pure Mulberry Silk</option>
+            <option value="100% Organic Cotton">100% Organic Cotton</option>
+            <option value="Pure Silk">Pure Silk</option>
+            <option value="Chanderi Silk-Cotton">Chanderi Silk-Cotton</option>
+          </select>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-amber-200/80 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-amber-100 text-amber-800 rounded-xl shrink-0">
-            <Heart className="w-6 h-6 text-rose-600" />
-          </div>
-          <div>
-            <h3 className="font-serif font-bold text-slate-900 text-base">Pure Heritage Fabrics</h3>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Handwoven mulberry silk, organic cotton, Ikat, Kanjeevaram, Jamdani and Banarasi weaves.
-            </p>
-          </div>
+        {/* Craft Region Dropdown */}
+        <div className="relative">
+          <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+          <select
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-700 bg-white cursor-pointer"
+          >
+            <option value="">All Craft Regions</option>
+            <option value="Pochampally (Telangana)">Pochampally (Telangana)</option>
+            <option value="Kanchipuram (Tamil Nadu)">Kanchipuram (Tamil Nadu)</option>
+            <option value="Varanasi (UP)">Varanasi (UP)</option>
+            <option value="Fulia (West Bengal)">Fulia (West Bengal)</option>
+          </select>
         </div>
-      </section>
+      </div>
 
-      {/* Featured Handloom Collections */}
-      <section className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-end">
-          <div>
-            <span className="text-xs font-bold text-amber-800 uppercase tracking-widest">Handcrafted Excellence</span>
-            <h2 className="font-serif font-bold text-2xl sm:text-3xl text-slate-900 mt-1">
-              Featured Weaver Products
-            </h2>
-          </div>
-          <Link to="/products" className="text-amber-800 hover:text-amber-900 text-xs font-bold flex items-center gap-1">
-            View All Handlooms <ChevronRight className="w-4 h-4" />
-          </Link>
+      {/* Product Grid */}
+      {loading ? (
+        <div className="text-center py-20 text-slate-500 text-sm">Loading authentic handlooms...</div>
+      ) : products.length === 0 ? (
+        <div className="bg-white p-12 text-center rounded-2xl border border-amber-200 text-slate-600">
+          <p className="font-serif text-lg font-bold">No handloom products found matching your filter.</p>
+          <button
+            onClick={() => { setSearch(''); setSelectedMaterial(''); setSelectedRegion(''); }}
+            className="mt-3 text-xs bg-amber-800 text-white font-semibold px-4 py-2 rounded-xl"
+          >
+            Clear Filters
+          </button>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
             <div key={product.id} className="bg-white rounded-2xl border border-amber-200/80 overflow-hidden shadow-sm hover:shadow-xl transition group flex flex-col justify-between">
               <div>
-                <div className="relative aspect-square overflow-hidden bg-slate-100">
+                <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
                   <img
                     src={getImageUrl(product.imageUrl)}
                     alt={product.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   />
-                  <div className="absolute top-3 left-3 bg-amber-900/80 text-amber-200 text-[10px] font-bold px-2.5 py-1 rounded-md backdrop-blur-md">
+                  <div className="absolute top-3 left-3 bg-amber-900/90 text-amber-100 text-[10px] font-bold px-2.5 py-1 rounded-md backdrop-blur-sm">
                     {product.craftRegion}
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-slate-950/80 text-white text-[10px] font-mono px-2 py-0.5 rounded">
+                    Loom: {product.loomType}
                   </div>
                 </div>
 
-                <div className="p-4 space-y-2">
-                  <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-                    {product.fabricMaterial}
-                  </span>
-                  <h3 className="font-serif font-bold text-slate-900 text-sm line-clamp-2 leading-snug">
+                <div className="p-5 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                      {product.fabricMaterial}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Thread Count: {product.threadCount || '100s'}
+                    </span>
+                  </div>
+
+                  <h3 className="font-serif font-bold text-slate-900 text-base leading-snug line-clamp-2">
                     {product.title}
                   </h3>
-                  <p className="text-xs text-slate-500">
-                    Woven by <span className="font-semibold text-slate-700">{product.weaverName}</span> ({product.loomType})
+
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {product.description}
                   </p>
+
+                  <div className="pt-2 text-xs text-slate-700 font-medium flex items-center justify-between border-t border-slate-100">
+                    <span>Master Weaver: <strong className="text-amber-900">{product.weaverName}</strong></span>
+                    <span className="text-emerald-700 font-semibold">{product.stockQuantity} in stock</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="font-serif font-bold text-slate-900 text-base">
-                  ₹{product.price?.toLocaleString('en-IN')}
-                </span>
+              <div className="p-5 bg-amber-50/50 border-t border-amber-100 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Direct Price</span>
+                  <span className="font-serif font-bold text-amber-900 text-xl">
+                    ₹{product.price?.toLocaleString('en-IN')}
+                  </span>
+                </div>
                 <Link
                   to={`/products/${product.id}`}
-                  className="bg-amber-800 hover:bg-amber-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                  className="bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition"
                 >
-                  View Cloth
+                  View Details
                 </Link>
               </div>
             </div>
           ))}
         </div>
-      </section>
+      )}
 
     </div>
   );
