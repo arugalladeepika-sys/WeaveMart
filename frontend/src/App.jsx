@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import RegistrationGuidanceModal from './components/RegistrationGuidanceModal';
 import AiChatbot from './components/AiChatbot';
 
+import ErrorBoundary from './components/ErrorBoundary';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -86,6 +87,7 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Home onOpenGuidance={() => setShowGuidanceModal(true)} />} />
             <Route path="/products" element={<Products />} />
@@ -116,6 +118,7 @@ export default function App() {
               }
             />
           </Routes>
+          </ErrorBoundary>
         </main>
 
         {/* Registration Guidance Video Player Modal */}
